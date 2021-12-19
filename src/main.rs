@@ -51,7 +51,7 @@ impl GameState {
             return Err("Tile position out of bounds!");
         }
 
-        *self.grid.borrow_mut()[y][x] = tile;
+        self.grid.borrow_mut()[y][x] = tile;
 
         Ok(())
     }
