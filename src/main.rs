@@ -58,7 +58,7 @@ impl GameState {
 
     fn create_flat_ground(&self) -> Result<(), &str> {
         for i in 0..GRID_WIDTH {
-            self.set_tile(i, GRID_HEIGHT, Tile::Ground)?;
+            self.set_tile(i, GRID_HEIGHT - 1, Tile::Ground)?;
         }
 
         Ok(())
