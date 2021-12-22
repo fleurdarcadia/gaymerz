@@ -58,7 +58,7 @@ impl GameState {
 
     fn create_flat_ground(&self) -> Result<(), &str> {
         for i in 0..GRID_WIDTH {
-            self.set_tile(i, GRID_HEIGHT - 1, Tile::Ground)?;
+            self.set_tile(i, GRID_HEIGHT -1 , Tile::Ground)?;
         }
 
         Ok(())
@@ -96,7 +96,7 @@ impl EventHandler<ggez::GameError> for GameState{
                     color,
                 )?;
 
-                graphics::draw(ctx, &rectangle, (ggez::mint::Point2 { x: 0.0, y: 0.0 },));
+                graphics::draw(ctx, &rectangle, (ggez::mint::Point2 { x: 0.0, y: 0.0 },))?;
             }
         }
 
@@ -111,7 +111,9 @@ fn main() -> GameResult {
         .build()?;
     
     let state = GameState::new();
-    state.create_flat_ground();
+    if let Err(error) = state.create_flat_ground() {
+        panic!("Failed to draw {}", error);
+      }
 
     //println!("{}", state);
 
