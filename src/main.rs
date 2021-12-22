@@ -58,6 +58,9 @@ impl GameState {
     }
 
     fn update(&mut self) {
+        let (x, y) = self.player_position;
+        self.grid.borrow_mut()[y][x] = Tile::Empty;
+
         match self.player_direction {
             Direction::Up         => self.player_position.1 -= 1,
             Direction::Down       => self.player_position.1 += 1,
@@ -65,6 +68,9 @@ impl GameState {
             Direction::Right      => self.player_position.0 += 1,
             Direction::Stationary => (),
         }
+
+        let (x, y) = self.player_position;
+        self.grid.borrow_mut()[y][x] = Tile::Player;
     }
 
     fn set_tile(&self, x: usize, y: usize, tile: Tile) -> Result<(), &str> {
