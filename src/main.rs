@@ -2,9 +2,8 @@ use std::cell::RefCell;
 use std::fmt;
 
 //use ggez::event::{KeyCode, KeyMods};
-use ggez::{event, graphics,/* timer,*/ Context, GameResult};
 use ggez::event::EventHandler;
-
+use ggez::{event, graphics, /* timer,*/ Context, GameResult, GameError};
 
 const WINDOW_WIDTH: f32 = 800.0;
 const WINDOW_HEIGHT: f32 = 600.0;
@@ -15,15 +14,16 @@ const GRID_HEIGHT: usize = 32;
 const TILE_WIDTH: f32 = WINDOW_WIDTH / (GRID_WIDTH as f32);
 const TILE_HEIGHT: f32 = WINDOW_HEIGHT / (GRID_HEIGHT as f32);
 
-
 #[derive(Copy, Clone, Debug)]
 enum Tile {
     Empty,
     Ground,
+    Player,
 }
 
 struct GameState {
     grid: RefCell<[[Tile; GRID_WIDTH]; GRID_HEIGHT]>,
+    player_position: (usize, usize),
 }
 
 impl fmt::Display for GameState {
@@ -38,11 +38,11 @@ impl fmt::Display for GameState {
     }
 }
 
-
 impl GameState {
     fn new() -> Self {
         GameState {
             grid: RefCell::new([[Tile::Empty; GRID_WIDTH]; GRID_HEIGHT]),
+            player_position: (4, GRID_HEIGHT - 2),
         }
     }
 
@@ -58,19 +58,21 @@ impl GameState {
 
     fn create_flat_ground(&self) -> Result<(), &str> {
         for i in 0..GRID_WIDTH {
-            self.set_tile(i, GRID_HEIGHT -1 , Tile::Ground)?;
+            self.set_tile(i, GRID_HEIGHT - 1, Tile::Ground)?;
         }
 
         Ok(())
     }
 }
 
-impl EventHandler<ggez::GameError> for GameState{
-    fn update(&mut self, _ctx: &mut Context) -> GameResult{
+impl EventHandler<ggez::GameError> for GameState {
+    fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        self.set_tile(self.player_position.0, self.player_position.1, Tile::Player)
+        .map_err(|err| GameError::CustomError(err.to_string()))?;
         Ok(())
     }
 
-    fn draw(&mut self, ctx: &mut Context) -> GameResult{
+    fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, graphics::Color::WHITE);
 
         for y in 0..GRID_HEIGHT {
@@ -79,14 +81,15 @@ impl EventHandler<ggez::GameError> for GameState{
                     (x as f32) * TILE_WIDTH,
                     (y as f32) * TILE_HEIGHT,
                     TILE_WIDTH,
-                    TILE_HEIGHT
+                    TILE_HEIGHT,
                 );
 
                 let brown = graphics::Color::from_rgb(0x6C, 0x28, 0x16);
 
                 let color = match self.grid.borrow()[y][x] {
-                    Tile::Empty  => graphics::Color::WHITE,
+                    Tile::Empty => graphics::Color::WHITE,
                     Tile::Ground => brown,
+                    Tile::Player => graphics::Color::RED,
                 };
 
                 let rectangle = graphics::Mesh::new_rectangle(
@@ -105,17 +108,17 @@ impl EventHandler<ggez::GameError> for GameState{
 }
 
 fn main() -> GameResult {
-    let (ctx,events_loop) = ggez::ContextBuilder::new("Platormer Test", "Arcadia + Tay")
+    let (ctx, events_loop) = ggez::ContextBuilder::new("Platormer Test", "Arcadia + Tay")
         .window_setup(ggez::conf::WindowSetup::default().title("gaymerz"))
         .window_mode(ggez::conf::WindowMode::default().dimensions(WINDOW_WIDTH, WINDOW_HEIGHT))
         .build()?;
-    
+
     let state = GameState::new();
     if let Err(error) = state.create_flat_ground() {
         panic!("Failed to draw {}", error);
-      }
+    }
 
     //println!("{}", state);
 
-    event::run(ctx,events_loop, state)
+    event::run(ctx, events_loop, state)
 }
