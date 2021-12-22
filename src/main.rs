@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 use std::fmt;
 
-use ggez::event::{KeyCode, KeyMods};
-use ggez::{event, graphics, timer, Context, GameResult};
+//use ggez::event::{KeyCode, KeyMods};
+use ggez::{event, graphics,/* timer,*/ Context, GameResult};
 use ggez::event::EventHandler;
 
 
@@ -110,10 +110,10 @@ fn main() -> GameResult {
         .window_mode(ggez::conf::WindowMode::default().dimensions(WINDOW_WIDTH, WINDOW_HEIGHT))
         .build()?;
     
-    let mut state = GameState::new();
+    let state = GameState::new();
     state.create_flat_ground();
 
-    println!("{}", state);
+    //println!("{}", state);
 
     event::run(ctx,events_loop, state)
 }
