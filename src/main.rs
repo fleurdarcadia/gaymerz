@@ -25,7 +25,6 @@ enum Tile {
 enum Direction {
     Stationary,
     Up,
-    Down,
     Left,
     Right,
 }
@@ -34,6 +33,9 @@ struct GameState {
     grid: RefCell<[[Tile; GRID_WIDTH]; GRID_HEIGHT]>,
     player_position: (usize, usize),
     player_direction: Direction,
+    player_jumping: bool,
+    current_update_tick: u64,
+    started_jump_tick: u64,
 }
 
 impl fmt::Display for GameState {
@@ -54,43 +56,53 @@ impl GameState {
             grid: RefCell::new([[Tile::Empty; GRID_WIDTH]; GRID_HEIGHT]),
             player_position: (4, GRID_HEIGHT - 2),
             player_direction: Direction::Stationary,
+            player_jumping: false,
+            current_update_tick: 0,
+            started_jump_tick: 0,
         }
     }
 
     fn update(&mut self) {
+        self.current_update_tick += 1;
+
         let (x, y) = self.player_position;
         self.grid.borrow_mut()[y][x] = Tile::Empty;
 
-        let new_position = match self.player_direction {
-            Direction::Up => {
-                if y == 0 {
-                    (x, y)
-                } else {
-                    (x, y - 1)
-                }
-            },
-            Direction::Down => {
-                if y == (GRID_HEIGHT - 1) {
-                    (x, y)
-                } else {
-                    (x, y + 1)
-                }
-            },
-            Direction::Left => {
-                if x == 0 {
-                    (x, y)
-                } else {
-                    (x - 1, y)
-                }
-            },
-            Direction::Right => {
-                if x == (GRID_WIDTH - 1) {
-                    (x, y)
-                } else {
-                    (x + 1, y)
-                }
-            },
-            Direction::Stationary => (x, y),
+        let new_position = if self.player_jumping {
+            let t = (self.current_update_tick - self.started_jump_tick) as f64;
+            let vx = match self.player_direction {
+                Direction::Up => 0.0,
+                Direction::Stationary => 0.0,
+                Direction::Left => -1.0,
+                Direction::Right => 1.0,
+            };
+
+            let delta_y = t + 0.5 * (-9.8) * t * t;
+            let delta_x = vx * t;
+
+            println!("T = {}, dx = {}, dy = {}", t, delta_x, delta_y);
+
+            let pos = (x + delta_x.floor() as usize, y + delta_y.floor() as usize);
+            println!("Jump position: {:?}", pos);
+            pos
+        } else {
+            match self.player_direction {
+                Direction::Left => {
+                    if x == 0 {
+                        (x, y)
+                    } else {
+                        (x - 1, y)
+                    }
+                },
+                Direction::Right => {
+                    if x == (GRID_WIDTH - 1) {
+                        (x, y)
+                    } else {
+                        (x + 1, y)
+                    }
+                },
+                _ => (x, y),
+            }
         };
         
         let (x, y) = new_position;
@@ -122,7 +134,14 @@ impl GameState {
     }
 
     fn change_player_direction(&mut self, dir: Direction) {
-        self.player_direction = dir;
+        if dir == Direction::Up {
+            if !self.player_jumping {
+                self.player_jumping = true;
+                self.started_jump_tick = self.current_update_tick;
+            }
+        } else {
+            self.player_direction = dir;
+        }
     }
 }
 
@@ -136,7 +155,6 @@ impl Direction {
     fn from_keycode(keycode: KeyCode) -> Self {
         match keycode {
             KeyCode::Up    => Direction::Up,
-            KeyCode::Down  => Direction::Down,
             KeyCode::Left  => Direction::Left,
             KeyCode::Right => Direction::Right,
             _              => Direction::Stationary,
