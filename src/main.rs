@@ -14,7 +14,7 @@ const GRID_HEIGHT: usize = 32;
 const TILE_WIDTH: f32 = WINDOW_WIDTH / (GRID_WIDTH as f32);
 const TILE_HEIGHT: f32 = WINDOW_HEIGHT / (GRID_HEIGHT as f32);
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum Tile {
     Empty,
     Ground,
@@ -61,15 +61,45 @@ impl GameState {
         let (x, y) = self.player_position;
         self.grid.borrow_mut()[y][x] = Tile::Empty;
 
-        match self.player_direction {
-            Direction::Up         => self.player_position.1 -= 1,
-            Direction::Down       => self.player_position.1 += 1,
-            Direction::Left       => self.player_position.0 -= 1,
-            Direction::Right      => self.player_position.0 += 1,
-            Direction::Stationary => (),
+        let new_position = match self.player_direction {
+            Direction::Up => {
+                if y == 0 {
+                    (x, y)
+                } else {
+                    (x, y - 1)
+                }
+            },
+            Direction::Down => {
+                if y == (GRID_HEIGHT - 1) {
+                    (x, y)
+                } else {
+                    (x, y + 1)
+                }
+            },
+            Direction::Left => {
+                if x == 0 {
+                    (x, y)
+                } else {
+                    (x - 1, y)
+                }
+            },
+            Direction::Right => {
+                if x == (GRID_WIDTH - 1) {
+                    (x, y)
+                } else {
+                    (x + 1, y)
+                }
+            },
+            Direction::Stationary => (x, y),
+        };
+        
+        let (x, y) = new_position;
+
+        if self.grid.borrow()[y][x].impassable() {
+            return;
         }
 
-        let (x, y) = self.player_position;
+        self.player_position = new_position;
         self.grid.borrow_mut()[y][x] = Tile::Player;
     }
 
@@ -96,6 +126,12 @@ impl GameState {
     }
 }
 
+impl Tile {
+    fn impassable(&self) -> bool {
+        *self == Tile::Ground
+    }
+}
+
 impl Direction {
     fn from_keycode(keycode: KeyCode) -> Self {
         match keycode {
@@ -111,6 +147,8 @@ impl Direction {
 impl EventHandler<ggez::GameError> for GameState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
         self.update();
+
+        println!("Player position: {:?}, Player direction: {:?}", self.player_position, self.player_direction);
 
         self.set_tile(self.player_position.0, self.player_position.1, Tile::Player)
             .map_err(|err| GameError::CustomError(err.to_string()))?;
