@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::fmt;
 
-//use ggez::event::{KeyCode, KeyMods};
+use ggez::event::{KeyCode, KeyMods};
 use ggez::event::EventHandler;
 use ggez::{event, graphics, /* timer,*/ Context, GameResult, GameError};
 
@@ -21,9 +21,19 @@ enum Tile {
     Player,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Direction {
+    Stationary,
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 struct GameState {
     grid: RefCell<[[Tile; GRID_WIDTH]; GRID_HEIGHT]>,
     player_position: (usize, usize),
+    player_direction: Direction,
 }
 
 impl fmt::Display for GameState {
@@ -43,6 +53,17 @@ impl GameState {
         GameState {
             grid: RefCell::new([[Tile::Empty; GRID_WIDTH]; GRID_HEIGHT]),
             player_position: (4, GRID_HEIGHT - 2),
+            player_direction: Direction::Stationary,
+        }
+    }
+
+    fn update(&mut self) {
+        match self.player_direction {
+            Direction::Up         => self.player_position.1 -= 1,
+            Direction::Down       => self.player_position.1 += 1,
+            Direction::Left       => self.player_position.0 -= 1,
+            Direction::Right      => self.player_position.0 += 1,
+            Direction::Stationary => (),
         }
     }
 
@@ -63,12 +84,31 @@ impl GameState {
 
         Ok(())
     }
+
+    fn change_player_direction(&mut self, dir: Direction) {
+        self.player_direction = dir;
+    }
+}
+
+impl Direction {
+    fn from_keycode(keycode: KeyCode) -> Self {
+        match keycode {
+            KeyCode::Up    => Direction::Up,
+            KeyCode::Down  => Direction::Down,
+            KeyCode::Left  => Direction::Left,
+            KeyCode::Right => Direction::Right,
+            _              => Direction::Stationary,
+        }
+    }
 }
 
 impl EventHandler<ggez::GameError> for GameState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        self.update();
+
         self.set_tile(self.player_position.0, self.player_position.1, Tile::Player)
-        .map_err(|err| GameError::CustomError(err.to_string()))?;
+            .map_err(|err| GameError::CustomError(err.to_string()))?;
+
         Ok(())
     }
 
@@ -104,6 +144,17 @@ impl EventHandler<ggez::GameError> for GameState {
         }
 
         graphics::present(ctx)
+    }
+
+    fn key_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        keycode: KeyCode,
+        _keymod: KeyMods,
+        _repeat: bool,
+    ) {
+        let dir = Direction::from_keycode(keycode);
+        self.change_player_direction(dir);
     }
 }
 
